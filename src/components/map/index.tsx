@@ -55,7 +55,6 @@ export const Map = ({ className }: MapProps) => {
   };
 
   const kmlImport = useCallback((map: google.maps.Map, fileNames: string[]) => {
-    console.log(fileNames);
     fileNames.forEach((fileName) => {
       const url = buildUrl(fileName);
       const kmlLayerOptions: google.maps.KmlLayerOptions = {
@@ -64,10 +63,7 @@ export const Map = ({ className }: MapProps) => {
         map,
         url,
       };
-      const kml = new window.google.maps.KmlLayer(kmlLayerOptions);
-      kml.addListener("status_changed", () => {
-        console.log(kml.getUrl(), kml.getStatus());
-      });
+      new window.google.maps.KmlLayer(kmlLayerOptions);
     });
   }, []);
 
