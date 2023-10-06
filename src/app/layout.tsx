@@ -1,8 +1,10 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Libre_Baskerville } from "next/font/google";
+import styles from "./styles.layout.module.scss";
+import Link from "next/link";
 
-const inter = Libre_Baskerville({ weight: "400", subsets: ["latin"] });
+const font = Libre_Baskerville({ weight: "400", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,7 +18,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${font.className} pb-8`}>
+        <header className={styles.header}>
+          <div className="l-wrapper">
+            <div className="flex justify-end">
+              <div className="mr-auto">
+                <a className={styles.logo} href="/">
+                  M
+                </a>
+              </div>
+              <nav>
+                <ul>
+                  <li className="inline-block mx-1">
+                    <Link href="/map">Map</Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </header>
+        <main>
+          <div className="l-wrapper">{children}</div>
+        </main>
+      </body>
     </html>
   );
 }

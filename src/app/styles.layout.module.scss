@@ -1,0 +1,50 @@
+// .main {
+//   height: 100vh,
+// }
+// .body {
+//   height: 100vh;
+// }
+
+$black: #4A4A4A;
+
+.header {
+  padding: 20px 0;
+}
+
+.logo {
+  display: inline-block;
+  position: relative;
+  color: $black;
+  font-weight: bold;
+  font-size: 48px;
+  line-height: 60px;
+  text-decoration: none;
+  &:before, &:after {
+    content: '';
+    position: absolute;
+    height: 5px;
+    background-color: $black;
+    bottom: 0;
+  }
+  &:before {
+    width: 0;
+    left: 0;
+    transition: width 0s ease-in;
+  }
+  &:after {
+    width: 52px;
+    right: 0;
+    transition: width 0s ease-in;
+  }
+  &:hover {
+    &:before {
+      width: 52px;
+      transition: width 0.2s 0.5s ease-in;
+    }
+    &:after {
+      width: 0;
+      transition: width 0.2s ease-in;
+    }
+  }
+}
+
