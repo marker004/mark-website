@@ -198,6 +198,13 @@ export const Crossword = () => {
 
   // console.log(focusedCell);
 
+  const changeDirection = () => {
+    setClueDirection((clueDirection) => {
+      if (clueDirection === "down") return "across";
+      else return "down";
+    });
+  };
+
   const moveCursor = (
     direction: CursorDirection,
     cellCoordinates: CellCoordinates
@@ -222,21 +229,16 @@ export const Crossword = () => {
           setFocusedCell([rowIdx, coll < row.length - 1 ? coll : 0]);
           break;
         case "Up":
-          console.log('case "up":');
           const rowu = column.lastIndexOf(true, rowIdx - 1);
           setFocusedCell([rowu < column.length - 1 ? rowu : 0, columnIdx]);
           break;
         case "Down":
           const rowd = column.indexOf(true, rowIdx + 1);
           setFocusedCell([rowd, columnIdx]);
-          console.log('case "down":');
           break;
       }
     } else {
-      setClueDirection((clueDirection) => {
-        if (clueDirection === "down") return "across";
-        else return "down";
-      });
+      changeDirection();
     }
   };
 
