@@ -32,6 +32,9 @@ export default function RootLayout({
                   <li className="inline-block mx-1">
                     <Link href="/map">Map</Link>
                   </li>
+                  <li className="inline-block mx-1">
+                    <Link href="/crosswords">Crosswords</Link>
+                  </li>
                 </ul>
               </nav>
             </div>

@@ -51,7 +51,11 @@ export const Map = ({ className }: MapProps) => {
   }, []);
 
   const buildUrl = (fileName: string): string => {
-    return `https://raw.githubusercontent.com/marker004/bike-trip/master/public/files/${fileName}`;
+    const rootUrl =
+      process.env.NODE_ENV === "production"
+        ? "/files/"
+        : "https://raw.githubusercontent.com/marker004/bike-trip/master/public/files/";
+    return `${rootUrl}${fileName}`;
   };
 
   const kmlImport = useCallback((map: google.maps.Map, fileNames: string[]) => {
