@@ -19,6 +19,7 @@ type CellProps = {
   column: number;
   onFocus: Dispatch<SetStateAction<CellCoordinates>>;
   isFocused: boolean;
+  isInFocusedWord: boolean;
 };
 
 const BlackCell = () => <span className={`${styles.cell} bg-black`} />;
@@ -32,11 +33,18 @@ export const Cell = ({
   column,
   onFocus,
   isFocused,
+  isInFocusedWord,
 }: CellProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  let cssClassName = `${styles.cell} ${styles.inputCell}`;
+
   if (isFocused && inputRef.current) {
     inputRef.current.focus();
+  }
+
+  if (isInFocusedWord) {
+    cssClassName += ` ${styles.isFocusedWord}`;
   }
 
   const handleOnFocus = () => {
@@ -93,8 +101,6 @@ export const Cell = ({
         );
         letterCopy[row][column] = key.toUpperCase();
         updateUserSolution(letterCopy);
-        // updateUserSolution(userSolution => userSolution[coordinates[0]][coordinates[1]] = event.key.toLocaleUpperCase())
-        // updateUserSolution(userSolution => userSolution)
         break;
       default:
         break;
@@ -106,7 +112,7 @@ export const Cell = ({
       <input
         type="text"
         readOnly
-        className={`${styles.cell} ${styles.inputCell}`}
+        className={cssClassName}
         onKeyUp={handleOnKeyDown}
         onFocus={handleOnFocus}
         value={userSolution[row][column] as string}

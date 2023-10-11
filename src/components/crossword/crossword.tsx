@@ -12,8 +12,6 @@ import {
   CellContents,
   CellCoordinates,
   PuzzleDirection,
-  HorizontalDirection,
-  VerticalDirection,
 } from "./types";
 
 // prettier-ignore
@@ -41,24 +39,62 @@ const shape = solution.map((row) =>
 
 // word is a starting coordinate, direction, and length
 
-// class Word {
-//   startingCoordinate: CellCoordinates;
+class Word {
+  startingCoordinate: CellCoordinates;
+  direction: PuzzleDirection;
+  length: number;
 
-//   constructor(startingCoordinate: CellCoordinates) {
-//     this.startingCoordinate = startingCoordinate;
-//   }
+  constructor(
+    startingCoordinate: CellCoordinates,
+    direction: PuzzleDirection,
+    length: number
+  ) {
+    this.startingCoordinate = startingCoordinate;
+    this.direction = direction;
+    this.length = length;
+  }
 
-//   isX = () => true;
-// }
+  cells = () => {
+    if (this.direction === "across") {
+      const [row, column] = this.startingCoordinate;
+      const columnIdxs = [...Array(this.length).keys()].map((i) => i + column);
 
-// const acrossWords = solution.map((row) => {
-//   row.map((contents, idx) => {
-//     const isBeginningOfWord = idx === 0 || !row[idx - 1];
-//     const isEndOfWord = !row[idx + 1] || idx === row.length - 1;
-//     // console.log("row #", idx, contents, `isBeginningOfWord`, isBeginningOfWord);
-//     // console.log("row #", idx, contents, `isEndOfWord`, isEndOfWord);
-//   });
-// });
+      return columnIdxs.map((idx) => [row, idx] as CellCoordinates);
+    }
+  };
+
+  // isFull = (): boolean => {
+  //   return userSolution;
+  // };
+}
+
+const acrossWords: Word[] = [];
+
+type CellWords = {
+  across?: Word;
+  down?: Word;
+};
+
+type AllCells = {
+  [k: string]: CellWords;
+};
+
+const allCells: AllCells = {};
+
+shape.forEach((row, rIdx) => {
+  row.forEach((cell, cIdx) => {
+    if (!cell) return;
+    if (cIdx === 0 || !row[cIdx - 1]) {
+      const nextBlack = row.indexOf(false, cIdx);
+      const wordEnd = nextBlack != -1 ? nextBlack : shape.length;
+      const length = wordEnd - cIdx;
+      acrossWords.push(new Word([rIdx, cIdx], "across", length));
+    }
+    allCells[`${rIdx},${cIdx}`] = {
+      across: acrossWords[acrossWords.length - 1],
+    };
+  });
+});
 
 type Clues = {
   across: string[];
@@ -158,20 +194,6 @@ const clues: Clues = {
   ],
 };
 
-// todo: render something like
-/*
-  <Grid>
-    {solution.map((row, rIdx) => (
-      <Row>
-      {row.map((cell, cIdx) => (
-        <Cell contents={cell} />
-      ))}
-      </Row>
-    ))}
-  </Grid>
-  <Clues />
-*/
-
 /*
 onKeyUp,
 if backspace, clear cell contents
@@ -179,8 +201,10 @@ if tab, go to first empty cell of next clue
 if shift-tab, go to the first of empty cell of previous clue
 if single character (letters),
   if current word not finished, goto next empty cell in current direction
-  else go to next cell of word
-if direction,
+  else
+    if not last cell of word go to next cell of word
+    else goto next empty cell in current direction
+if direction (left, right, up, down arrow),
   if word in same plane, move cursor one in that direction
   else change direction
 if non-letter, ignore
@@ -188,15 +212,22 @@ if single character in last empty space, change direction and go to first empty 
 if space, change direction
  */
 
+/*
+onClick
+if not already focused, focus (this is automatic with inputs)
+else, change direction
+*/
+
 // export const Crossword = (
 //   clues: Clues,
 //   solution: Matrix15x15<Cell>
 // ) => {
 export const Crossword = () => {
   const [focusedCell, setFocusedCell] = useState<CellCoordinates>([0, 0]);
-  const [clueDirection, setClueDirection] = useState<PuzzleDirection>("down");
+  const [focusedWord, setFocusedWord] = useState<typeof Word>();
+  const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
 
-  // console.log(focusedCell);
+  console.log(clueDirection);
 
   const changeDirection = () => {
     setClueDirection((clueDirection) => {
@@ -249,18 +280,23 @@ export const Crossword = () => {
   const [userSolution, setUserSolution] =
     useState<Matrix15x15<CellContents>>(emptySolution);
 
-  const isFocused = (coordinates: CellCoordinates): boolean => {
+  const cellIsFocused = (coordinates: CellCoordinates): boolean => {
     const [row, column] = coordinates;
     return focusedCell.toString() == [row, column].toString();
   };
 
-  // console.log(userSolution);
-  // prettier-ignore
+  const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
+    const cellWords = allCells[`${focusedCell}`];
+    if (!cellWords) return false;
+    const cellsInWord = cellWords[clueDirection]?.cells();
+    const coordinatesStringified = JSON.stringify(coordinates);
+    const cellsInWordStringified = JSON.stringify(cellsInWord);
+    const inArray = cellsInWordStringified.indexOf(coordinatesStringified);
+    return inArray != -1;
+  };
+
   return (
     <>
-      {/* {solution.map((row, idx) => (
-        <Row key={idx} cells={row} />
-      ))} */}
       <Grid>
         {userSolution.map((row, rIdx) => (
           <Row key={rIdx}>
@@ -274,7 +310,8 @@ export const Crossword = () => {
                 updateUserSolution={setUserSolution}
                 moveCursor={moveCursor}
                 onFocus={setFocusedCell}
-                isFocused={isFocused([rIdx, cIdx])}
+                isFocused={cellIsFocused([rIdx, cIdx])}
+                isInFocusedWord={isInFocusedWord([rIdx, cIdx])}
               />
             ))}
           </Row>
