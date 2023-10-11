@@ -2,7 +2,7 @@
 // matrix of solution - static
 // matrix of entries - user interaction
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cell } from "./cell";
 import { Grid } from "./grid";
 import { Row } from "./row";
@@ -54,13 +54,26 @@ class Word {
     this.length = length;
   }
 
-  cells = () => {
+  get cells() {
+    const [rowIdx, columnIdx] = this.startingCoordinate;
     if (this.direction === "across") {
-      const [row, column] = this.startingCoordinate;
-      const columnIdxs = [...Array(this.length).keys()].map((i) => i + column);
+      const columnIdxs = [...Array(this.length).keys()].map(
+        (i) => i + columnIdx
+      );
 
-      return columnIdxs.map((idx) => [row, idx] as CellCoordinates);
+      return columnIdxs.map((idx) => [rowIdx, idx] as CellCoordinates);
+    } else {
+      const rowIdxs = [...Array(this.length).keys()].map((i) => i + rowIdx);
+      return rowIdxs.map((idx) => [idx, columnIdx] as CellCoordinates);
     }
+  }
+
+  equals = (word: Word) => {
+    return (
+      this.startingCoordinate == word.startingCoordinate &&
+      this.direction == word.direction &&
+      this.length == word.length
+    );
   };
 
   // isFull = (): boolean => {
@@ -69,6 +82,7 @@ class Word {
 }
 
 const acrossWords: Word[] = [];
+const downWords: Word[] = [];
 
 type CellWords = {
   across?: Word;
@@ -79,19 +93,38 @@ type AllCells = {
   [k: string]: CellWords;
 };
 
+const isInWord = (coordinates: CellCoordinates, word: Word) => {
+  const coordinatesStringified = JSON.stringify(coordinates);
+  const cellsInWordStringified = JSON.stringify(word.cells);
+  const inArray = cellsInWordStringified.indexOf(coordinatesStringified);
+  return inArray != -1;
+};
+
 const allCells: AllCells = {};
 
+const calculateLength = (array: boolean[], cellIdx: number): number => {
+  const nextBlack = array.indexOf(false, cellIdx);
+  const wordEnd = nextBlack != -1 ? nextBlack : shape.length;
+  return wordEnd - cellIdx;
+};
+
+// across
 shape.forEach((row, rIdx) => {
   row.forEach((cell, cIdx) => {
     if (!cell) return;
     if (cIdx === 0 || !row[cIdx - 1]) {
-      const nextBlack = row.indexOf(false, cIdx);
-      const wordEnd = nextBlack != -1 ? nextBlack : shape.length;
-      const length = wordEnd - cIdx;
-      acrossWords.push(new Word([rIdx, cIdx], "across", length));
+      const acrossLength = calculateLength(row, cIdx);
+      acrossWords.push(new Word([rIdx, cIdx], "across", acrossLength));
+    }
+
+    const column = shape.map((row) => row[cIdx]);
+    if (rIdx === 0 || !column[rIdx - 1]) {
+      const downLength = calculateLength(column, rIdx);
+      downWords.push(new Word([rIdx, cIdx], "down", downLength));
     }
     allCells[`${rIdx},${cIdx}`] = {
       across: acrossWords[acrossWords.length - 1],
+      down: downWords.find((word) => isInWord([rIdx, cIdx], word)),
     };
   });
 });
@@ -227,7 +260,7 @@ export const Crossword = () => {
   const [focusedWord, setFocusedWord] = useState<typeof Word>();
   const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
 
-  console.log(clueDirection);
+  console.log(focusedCell);
 
   const changeDirection = () => {
     setClueDirection((clueDirection) => {
@@ -235,6 +268,18 @@ export const Crossword = () => {
       else return "down";
     });
   };
+
+  useEffect(() => {
+    // window.addEventListener("keydown", function (e: KeyboardEvent) {
+    //   if (
+    //     ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
+    //       e.code
+    //     )
+    //   ) {
+    //     e.preventDefault();
+    //   }
+    // });
+  }, []);
 
   const moveCursor = (
     direction: CursorDirection,
@@ -253,7 +298,7 @@ export const Crossword = () => {
       switch (direction) {
         case "Right":
           const colr = row.indexOf(true, columnIdx + 1);
-          setFocusedCell([rowIdx, colr]);
+          setFocusedCell([rowIdx, colr > -1 ? colr : row.length - 1]);
           break;
         case "Left":
           const coll = row.lastIndexOf(true, columnIdx - 1);
@@ -265,7 +310,7 @@ export const Crossword = () => {
           break;
         case "Down":
           const rowd = column.indexOf(true, rowIdx + 1);
-          setFocusedCell([rowd, columnIdx]);
+          setFocusedCell([rowd > -1 ? rowd : column.length - 1, columnIdx]);
           break;
       }
     } else {
@@ -288,11 +333,8 @@ export const Crossword = () => {
   const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
     const cellWords = allCells[`${focusedCell}`];
     if (!cellWords) return false;
-    const cellsInWord = cellWords[clueDirection]?.cells();
-    const coordinatesStringified = JSON.stringify(coordinates);
-    const cellsInWordStringified = JSON.stringify(cellsInWord);
-    const inArray = cellsInWordStringified.indexOf(coordinatesStringified);
-    return inArray != -1;
+    const word = cellWords[clueDirection];
+    return word ? isInWord(coordinates, word) : false;
   };
 
   return (
