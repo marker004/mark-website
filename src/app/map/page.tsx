@@ -24,6 +24,8 @@ export default function map() {
     ],
   };
 
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <>
       <section>
@@ -35,7 +37,7 @@ export default function map() {
         ))}
         <p></p>
       </section>
-      <Map className="mt-8" />
+      <Map className="mt-8" apiKey={apiKey as string} />
     </>
   );
 }

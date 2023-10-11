@@ -18,12 +18,13 @@ const DEFAULT_ZOOM = 4;
 
 type MapProps = HTMLAttributes<HTMLDivElement> & {
   className?: string;
+  apiKey: string;
 };
 
-export const Map = ({ className }: MapProps) => {
+export const Map = ({ className, apiKey }: MapProps) => {
   const { isLoaded: mapLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAmBDlZKscQG2s8XHoJ1dEX2Rx4m_2-AxM", // todo: jeez please hide this
+    googleMapsApiKey: apiKey,
   });
 
   const mapOptions: google.maps.MapOptions = useMemo(
