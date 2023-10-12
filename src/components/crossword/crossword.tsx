@@ -270,15 +270,15 @@ export const Crossword = () => {
   };
 
   useEffect(() => {
-    // window.addEventListener("keydown", function (e: KeyboardEvent) {
-    //   if (
-    //     ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
-    //       e.code
-    //     )
-    //   ) {
-    //     e.preventDefault();
-    //   }
-    // });
+    window.addEventListener("keydown", function (e: KeyboardEvent) {
+      if (
+        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
+          e.code
+        )
+      ) {
+        e.preventDefault();
+      }
+    });
   }, []);
 
   const moveCursor = (
