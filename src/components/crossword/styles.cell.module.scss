@@ -8,12 +8,7 @@
   &.isFocusedWord {
     background-color: blue;
   }
-}
-
-.inputCell {
-  cursor: default;
-  &:focus {
+  &.isFocusedCell {
     background-color: yellow;
-    outline: none;
   }
 }

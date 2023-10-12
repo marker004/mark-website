@@ -2,7 +2,7 @@
 // matrix of solution - static
 // matrix of entries - user interaction
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Cell } from "./cell";
 import { Grid } from "./grid";
 import { Row } from "./row";
@@ -263,7 +263,10 @@ export const Crossword = () => {
 
   useEffect(() => {
     const word = allCells[`${focusedCell}`][clueDirection];
-    setFocusedWord(word);
+    if (!word.equals(focusedWord)) {
+      console.log("setting focused Word");
+      setFocusedWord(word);
+    }
   }, [clueDirection, focusedCell]);
 
   const changeDirection = () => {
@@ -338,6 +341,79 @@ export const Crossword = () => {
   const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
     return isInWord(coordinates, focusedWord);
   };
+  /*
+onKeyUp,
+-- if backspace, clear cell contents
+if tab, go to first empty cell of next clue
+if shift-tab, go to the first of empty cell of previous clue
+if single character (letters),
+  input letter to cell
+  if current word not finished, goto next empty cell in current direction
+  else
+    if not last cell of word go to next cell of word
+    else goto next empty cell in current direction
+-- if direction (left, right, up, down arrow),
+    if word in same plane, move cursor one in that direction
+    else change direction
+-- if non-letter, ignore
+if single character in last empty space, change direction and go to first empty character in new direction
+-- if space, change direction
+ */
+  const handleOnKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const key = event.key;
+      const code = event.code;
+
+      const [row, column] = focusedCell;
+
+      switch (code) {
+        case "Space":
+          changeDirection();
+          break;
+        case code.match(/^Arrow/)?.input:
+          const direction = code.replace("Arrow", "") as CursorDirection;
+          moveCursor(direction, [row, column]);
+          break;
+        case "Tab":
+          if (!event.shiftKey) {
+            // handleNextWord
+            // const word = allWords.indexOf(focusedWord);
+            // const nextEmptyWord = allWords.find((word) => word.)
+            // console.log(word);
+            // setFocusedWord()
+          } else {
+            // handlePreviousWord (or maybe handleNextWord(-1) or something)
+          }
+          break;
+        case "Backspace":
+          const backspaceCopy: Matrix15x15<CellContents> = JSON.parse(
+            JSON.stringify(userSolution)
+          );
+          backspaceCopy[row][column] = "";
+          setUserSolution(backspaceCopy);
+          break;
+        case `Key${key.toUpperCase()}`:
+          if (event.altKey || event.metaKey) return;
+          const letterCopy: Matrix15x15<CellContents> = JSON.parse(
+            JSON.stringify(userSolution)
+          );
+          letterCopy[row][column] = key.toUpperCase();
+          setUserSolution(letterCopy);
+          break;
+        default:
+          break;
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusedCell, clueDirection, focusedWord]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleOnKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleOnKeyDown);
+    };
+  }, [handleOnKeyDown]);
 
   return (
     <>
@@ -351,9 +427,8 @@ export const Crossword = () => {
                 column={cIdx}
                 contents={cell}
                 userSolution={userSolution}
-                updateUserSolution={setUserSolution}
-                moveCursor={moveCursor}
-                onFocus={setFocusedCell}
+                setFocusedCell={setFocusedCell}
+                changeDirection={changeDirection}
                 isFocused={cellIsFocused([rIdx, cIdx])}
                 isInFocusedWord={isInFocusedWord([rIdx, cIdx])}
               />
