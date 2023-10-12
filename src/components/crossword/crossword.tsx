@@ -84,9 +84,10 @@ class Word {
 const acrossWords: Word[] = [];
 const downWords: Word[] = [];
 
+// note: this type can't handle danglers (super rare edge case)
 type CellWords = {
-  across?: Word;
-  down?: Word;
+  across: Word;
+  down: Word;
 };
 
 type AllCells = {
@@ -124,7 +125,7 @@ shape.forEach((row, rIdx) => {
     }
     allCells[`${rIdx},${cIdx}`] = {
       across: acrossWords[acrossWords.length - 1],
-      down: downWords.find((word) => isInWord([rIdx, cIdx], word)),
+      down: downWords.find((word) => isInWord([rIdx, cIdx], word)) as Word,
     };
   });
 });
@@ -257,10 +258,13 @@ else, change direction
 // ) => {
 export const Crossword = () => {
   const [focusedCell, setFocusedCell] = useState<CellCoordinates>([0, 0]);
-  const [focusedWord, setFocusedWord] = useState<typeof Word>();
+  const [focusedWord, setFocusedWord] = useState<Word>(acrossWords[0]);
   const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
 
-  console.log(focusedCell);
+  useEffect(() => {
+    const word = allCells[`${focusedCell}`][clueDirection];
+    setFocusedWord(word);
+  }, [clueDirection, focusedCell]);
 
   const changeDirection = () => {
     setClueDirection((clueDirection) => {
@@ -327,14 +331,12 @@ export const Crossword = () => {
 
   const cellIsFocused = (coordinates: CellCoordinates): boolean => {
     const [row, column] = coordinates;
-    return focusedCell.toString() == [row, column].toString();
+    const [focusedRow, focusedColumn] = focusedCell;
+    return row === focusedRow && column === focusedColumn;
   };
 
   const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
-    const cellWords = allCells[`${focusedCell}`];
-    if (!cellWords) return false;
-    const word = cellWords[clueDirection];
-    return word ? isInWord(coordinates, word) : false;
+    return isInWord(coordinates, focusedWord);
   };
 
   return (
