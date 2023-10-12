@@ -69,8 +69,11 @@ class Word {
   }
 
   equals = (word: Word) => {
+    const [thisRow, thisColumn] = this.startingCoordinate;
+    const [wordRow, wordColumn] = word.startingCoordinate;
     return (
-      this.startingCoordinate == word.startingCoordinate &&
+      thisRow === wordRow &&
+      thisColumn === wordColumn &&
       this.direction == word.direction &&
       this.length == word.length
     );
@@ -129,6 +132,8 @@ shape.forEach((row, rIdx) => {
     };
   });
 });
+
+const allWords = [...acrossWords, ...downWords];
 
 type Clues = {
   across: string[];
@@ -228,30 +233,6 @@ const clues: Clues = {
   ],
 };
 
-/*
-onKeyUp,
-if backspace, clear cell contents
-if tab, go to first empty cell of next clue
-if shift-tab, go to the first of empty cell of previous clue
-if single character (letters),
-  if current word not finished, goto next empty cell in current direction
-  else
-    if not last cell of word go to next cell of word
-    else goto next empty cell in current direction
-if direction (left, right, up, down arrow),
-  if word in same plane, move cursor one in that direction
-  else change direction
-if non-letter, ignore
-if single character in last empty space, change direction and go to first empty character in new direction
-if space, change direction
- */
-
-/*
-onClick
-if not already focused, focus (this is automatic with inputs)
-else, change direction
-*/
-
 // export const Crossword = (
 //   clues: Clues,
 //   solution: Matrix15x15<Cell>
@@ -260,6 +241,8 @@ export const Crossword = () => {
   const [focusedCell, setFocusedCell] = useState<CellCoordinates>([0, 0]);
   const [focusedWord, setFocusedWord] = useState<Word>(acrossWords[0]);
   const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
+
+  // console.log(focusedCell);
 
   useEffect(() => {
     const word = allCells[`${focusedCell}`][clueDirection];
@@ -341,6 +324,21 @@ export const Crossword = () => {
   const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
     return isInWord(coordinates, focusedWord);
   };
+
+  // const nextEmptyCell = (): CellCoordinates => {
+  //   const [currentRow, currentColumn] = focusedCell;
+  //   userSolution[currentRow]
+  //   return [0,0]
+  // };
+
+  // const nextEmptyWord = (): Word => {
+  //   const [currentRow, currentColumn] = focusedCell;
+  //   userSolution[currentRow]
+  //   return [0,0]
+  // };
+
+  // const isWordFull = (word: Word): boolean => {};
+
   /*
 onKeyUp,
 -- if backspace, clear cell contents
