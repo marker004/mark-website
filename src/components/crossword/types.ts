@@ -21,3 +21,8 @@ export type VerticalDirection = "Down" | "Up";
 export type CursorDirection = HorizontalDirection | VerticalDirection;
 
 export type CellCoordinates = [number, number];
+
+export type Clues = {
+  across: string[];
+  down: string[];
+};

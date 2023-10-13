@@ -2,7 +2,7 @@
 // matrix of solution - static
 // matrix of entries - user interaction
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Cell } from "./cell";
 import { Grid } from "./grid";
 import { Row } from "./row";
@@ -12,32 +12,18 @@ import {
   CellContents,
   CellCoordinates,
   PuzzleDirection,
+  // Clues
 } from "./types";
-
-// prettier-ignore
-const solution: Matrix15x15<CellContents> = [
-  ["I", "D", "L", "Y", null, "E", "G", "G", "S", null, "S", "A", "C", "H", "A"],
-  ["R", "I", "A", "A", null, "E", "U", "R", "O", null, "E", "M", "A", "I", "L"],
-  ["M", "A", "R", "K", "A", "N", "S", "A", "S", null, "M", "C", "G", "E", "E"],
-  ["A", "L", "B", "U", "S", null, null, "M", "A", "C", "I", null, "E", "S", "S"],
-  [null, null, null, "T", "E", "N", "A", "M", null, "A", "H", "A", null, null, null],
-  ["V", "A", "R", null, "A", "B", "B", "Y", "S", "T", "A", "N", "D", "E", "R"],
-  ["I", "D", "E", "S", null, "C", "A", "S", "H", null, "R", "A", "I", "M", "I"],
-  ["C", "O", "M", "P", "A", "S", "S", null, "O", "L", "D", "M", "A", "I", "D"],
-  ["A", "B", "O", "R", "G", null, "I", "G", "G", "Y", null, "E", "R", "L", "E"],
-  ["R", "O", "W", "A", "N", "G", "C", "H", "U", "N", "G", null, "Y", "E", "R"],
-  [null, null, null, "Y", "O", "U", null, "A", "N", "N", "A", "L", null, null, null],
-  ["R", "S", "T", null, "S", "T", "A", "N", null, null, "P", "H", "A", "G", "E"],
-  ["I", "C", "A", "N", "T", null, "S", "I", "L", "A", "S", "A", "G", "N", "A"],
-  ["T", "U", "C", "C", "I", null, "H", "A", "I", "M", null, "S", "O", "A", "R"],
-  ["A", "D", "H", "O", "C", null, "E", "N", "D", "S", null, "A", "G", "T", "S"],
-];
+// import { clues } from "./constants";
+import { solution } from "./constants";
 
 const shape = solution.map((row) =>
   row.map((cell) => !!cell)
 ) as Matrix15x15<boolean>;
 
-// word is a starting coordinate, direction, and length
+const emptySolution = solution.map((row) =>
+  row.map((cell) => (!!cell ? ("" as string) : null))
+) as Matrix15x15<string | null>;
 
 class Word {
   startingCoordinate: CellCoordinates;
@@ -78,10 +64,6 @@ class Word {
       this.length == word.length
     );
   };
-
-  // isFull = (): boolean => {
-  //   return userSolution;
-  // };
 }
 
 const acrossWords: Word[] = [];
@@ -112,7 +94,6 @@ const calculateLength = (array: boolean[], cellIdx: number): number => {
   return wordEnd - cellIdx;
 };
 
-// across
 shape.forEach((row, rIdx) => {
   row.forEach((cell, cIdx) => {
     if (!cell) return;
@@ -135,10 +116,32 @@ shape.forEach((row, rIdx) => {
 
 const allWords = [...acrossWords, ...downWords];
 
-type Clues = {
-  across: string[];
-  down: string[];
-};
+const allStartingCoordinates = allWords.map((word) => word.startingCoordinate);
+
+let uniqueStartingCoordinates: CellCoordinates[] = [];
+
+allStartingCoordinates.forEach((cell) => {
+  const [rIdx, cIdx] = cell;
+
+  const alreadyInThere = uniqueStartingCoordinates.some((existingCell) => {
+    const [eRIdx, eCIdx] = existingCell;
+    return rIdx === eRIdx && cIdx === eCIdx;
+  });
+
+  if (!alreadyInThere) {
+    uniqueStartingCoordinates.push(cell);
+  }
+});
+
+const sortedUniqueStartingCoordinates = uniqueStartingCoordinates.toSorted(
+  (a, b) => {
+    const [aRIdx, aCIdx] = a;
+    const [bRIdx, bCIdx] = b;
+
+    return aRIdx - bRIdx || aCIdx - bCIdx;
+  }
+);
+
 /*
 square is numbered if it is:
 beginning of row
@@ -146,92 +149,6 @@ after (to the right of) a null (black)
 first column
 below (same index as) a null (black)
 */
-const clues: Clues = {
-  across: [
-    `Inactively`,
-    `Urges`,
-    `___ Baron Cohen`,
-    `Diamond, Platinum, and Gold certifiers: Abbr`,
-    `___zone, with Finland and France, but not Sweden or Switzerland`,
-    `What many meetings could have been`,
-    `Sea to a Spaniard + Dorothy's home state`,
-    `"___ and Me!"`,
-    `___ Dumbledore`,
-    `Bookout of "16 and Pregnant" and "Teen Mom"`,
-    `Dangerous type of curve, maybe`,
-    `Mid-morning hour`,
-    `"Take on Me" band`,
-    `Soccer replay official, for short`,
-    `You may find one in a 6 pack + Onlooker`,
-    `Mid-March hazard`,
-    `It's cold and hard`,
-    `Director of "The Evil Dead" and "The Quick and the Dead"`,
-    `Its needle always points North`,
-    `Mary's alternate reality fate in "It's a Wonderful Life"`,
-    `Seven of Nine, for one`,
-    `Leader of a band of Stooges?`,
-    `Writer ___ Stanley Gardner`,
-    `___ Khanna (California's 17th) + "Everybody Have Fun Tonight" band`,
-    `"___ Blues" from The Beatles "The Beatles"`,
-    `The pronoun of the person doing this puzzle?`,
-    `Record of the year?`,
-    `What may sometimes come between Q and U in English?`,
-    `NBA's Van Gundy`,
-    `Germicidal germ`,
-    `"This's too much"`,
-    `Yucatan Yes + Garfield's Favorite Food`,
-    `Director and Star of Big Night (1996)`,
-    `Group of Women in Music (Pt III)`,
-    `John Ashcroft's "Let the Eagle ___"`,
-    `As necessary`,
-    `Where hairs are usually split`,
-    `Some F.B.I`,
-  ],
-  down: [
-    `Strongest Hurricane of 2017`,
-    `Clock face, or a big name in soap`,
-    `Meaty Southeast Asian Salad`,
-    `Official language of the Russian Republic of Sakha`,
-    `Nighttime, poetically`,
-    `Astronaut Grissom`,
-    `Music awards ceremony`,
-    `Only three-time member of the 60 home run club`,
-    `Like Manchego, Gouda or Cheddar`,
-    `Station for Mad Men`,
-    `Nick of The Wicker Man`,
-    `Races, archaically`,
-    `Some are browns, some are pales, some are reals, all are...`,
-    `Toward the ocean`,
-    `Creature with nine lives`,
-    `___ Saturday Night (Original title of SNL)`,
-    `Unable to walk`,
-    `"What's in ___?"`,
-    `Anglican parish priest`,
-    `Chipotle marinade`,
-    `Fix the lawn, maybe`,
-    `Ancient Japanese military dictator`,
-    `Log`,
-    `Hirsch of "Into the Wild"`,
-    `1994 Slam Dunk Contest Champion J.R.`,
-    `"Say it, don't ___ it"`,
-    `One who doesn't claim to know`,
-    `Red Sox Hall of Famer Fred`,
-    `Neighbor of an Ivorian and a Togolese`,
-    `A certain type of feeling`,
-    `Breaks in continuity`,
-    `Capital of Tibet`,
-    `A lovely meter maid`,
-    `A type of surface to surface missile`,
-    `RPM measurer, for short`,
-    `Tennis champion and AIDS activist Arthur`,
-    `Wide-eyed`,
-    `A tiny insect that mates in a swarm`,
-    `"I'm all ___"`,
-    `Sgt or Cpl`,
-    `One of three around the eye of 22-Down`,
-    `Trans and Pan, for two`,
-  ],
-};
 
 // export const Crossword = (
 //   clues: Clues,
@@ -241,35 +158,32 @@ export const Crossword = () => {
   const [focusedCell, setFocusedCell] = useState<CellCoordinates>([0, 0]);
   const [focusedWord, setFocusedWord] = useState<Word>(acrossWords[0]);
   const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
-
-  // console.log(focusedCell);
+  const [userSolution, setUserSolution] =
+    useState<Matrix15x15<CellContents>>(emptySolution);
 
   useEffect(() => {
+    // console.log(focusedCell);
     const word = allCells[`${focusedCell}`][clueDirection];
     if (!word.equals(focusedWord)) {
-      console.log("setting focused Word");
       setFocusedWord(word);
     }
   }, [clueDirection, focusedCell]);
 
-  const changeDirection = () => {
-    setClueDirection((clueDirection) => {
-      if (clueDirection === "down") return "across";
-      else return "down";
-    });
+  useEffect(() => {
+    // todo: make this handle backspace
+    setFocusedCell(
+      clueDirection === "across" ? nextEmptyCellAcross() : nextEmptyCellDown()
+    );
+  }, [userSolution]);
+
+  const flipDirection = (direction: PuzzleDirection) => {
+    if (clueDirection === "down") return "across";
+    else return "down";
   };
 
-  useEffect(() => {
-    window.addEventListener("keydown", function (e: KeyboardEvent) {
-      if (
-        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
-          e.code
-        )
-      ) {
-        e.preventDefault();
-      }
-    });
-  }, []);
+  const changeDirection = () => {
+    setClueDirection(flipDirection);
+  };
 
   const moveCursor = (
     direction: CursorDirection,
@@ -308,13 +222,6 @@ export const Crossword = () => {
     }
   };
 
-  const emptySolution = solution.map((row) =>
-    row.map((cell) => (!!cell ? ("" as string) : null))
-  ) as Matrix15x15<string | null>;
-
-  const [userSolution, setUserSolution] =
-    useState<Matrix15x15<CellContents>>(emptySolution);
-
   const cellIsFocused = (coordinates: CellCoordinates): boolean => {
     const [row, column] = coordinates;
     const [focusedRow, focusedColumn] = focusedCell;
@@ -325,17 +232,179 @@ export const Crossword = () => {
     return isInWord(coordinates, focusedWord);
   };
 
-  // const nextEmptyCell = (): CellCoordinates => {
-  //   const [currentRow, currentColumn] = focusedCell;
-  //   userSolution[currentRow]
-  //   return [0,0]
-  // };
+  // may be reusable for across if given a direction param
+  const findInDownWord = (word: Word): CellCoordinates | undefined => {
+    const cells = word.cells;
+    const [focusedRIdx, focusedCIdx] = focusedCell;
 
-  // const nextEmptyWord = (): Word => {
-  //   const [currentRow, currentColumn] = focusedCell;
-  //   userSolution[currentRow]
-  //   return [0,0]
-  // };
+    // const focusedCellIndexInWord = cells.findIndex((cell, idx) => {
+    //   const [rIdx, cIdx] = cell;
+    //   return rIdx === focusedRIdx && cIdx === focusedCIdx;
+    // });
+
+    const rowLetters = cells.reduce<Record<string, string>>((acc, cell) => {
+      const [rIdx, cIdx] = cell;
+      acc[rIdx] = userSolution[rIdx][cIdx] as string;
+      return acc;
+    }, {});
+
+    const emptyCellAfterFocusedCell = Object.entries(rowLetters).find(
+      ([rIdx, userValue]) => {
+        return userValue === "" && parseInt(rIdx) > focusedRIdx;
+      }
+    );
+
+    const firstEmptyCellBeforeFocusedCell = Object.entries(rowLetters).find(
+      ([rIdx, userValue]) => {
+        return userValue === "" && parseInt(rIdx) < focusedRIdx;
+      }
+    );
+
+    if (emptyCellAfterFocusedCell) {
+      return [parseInt(emptyCellAfterFocusedCell[0]), focusedCIdx];
+    }
+
+    if (firstEmptyCellBeforeFocusedCell) {
+      return [parseInt(firstEmptyCellBeforeFocusedCell[0]), focusedCIdx];
+    }
+  };
+
+  const firstEmptyAcrossCell = (): CellCoordinates => {
+    const firstEmptyIndexByRow = userSolution.map((row) =>
+      row.findIndex((cell) => cell === "")
+    );
+
+    const row = firstEmptyIndexByRow.findIndex((row) => row > -1);
+    const column = firstEmptyIndexByRow.find((row) => row > -1);
+
+    if (row > -1 && typeof column === "number" && column > -1) {
+      return [row, column];
+    }
+
+    return focusedCell;
+  };
+
+  const firstEmptyDownCell = (): CellCoordinates => {
+    const firstWord = downWords.find((word) => {
+      const hasEmpties = word.cells.some((cell) => {
+        const [rIdx, cIdx] = cell;
+        return userSolution[rIdx][cIdx] === "";
+      });
+
+      if (hasEmpties) return word;
+    });
+
+    if (!firstWord) return focusedCell;
+
+    return firstEmptyCellInWord(firstWord) as CellCoordinates;
+  };
+
+  // maybe reusable with "before/after" param
+  const nextWordWithEmpties = (): Word | undefined => {
+    const currentWordIndex = downWords.indexOf(focusedWord);
+
+    return downWords.find((word, idx) => {
+      const hasEmpties = word.cells.some((cell) => {
+        const [rIdx, cIdx] = cell;
+        return userSolution[rIdx][cIdx] === "";
+      });
+      if (idx > currentWordIndex && hasEmpties) return word;
+    });
+  };
+
+  const firstEmptyCellInWord = (word: Word): CellCoordinates | undefined => {
+    return word.cells.find((cell) => {
+      const [rIdx, cIdx] = cell;
+
+      return userSolution[rIdx][cIdx] === "";
+    });
+  };
+
+  const nextEmptyCellDown = (): CellCoordinates => {
+    const [rIdx, cIdx] = focusedCell;
+    if (userSolution[rIdx][cIdx] === "") {
+      return focusedCell;
+    }
+
+    const cellInWord = findInDownWord(focusedWord);
+
+    if (cellInWord) return cellInWord;
+
+    const nextWordWithEmptiesAfterCurrent = nextWordWithEmpties();
+
+    if (nextWordWithEmptiesAfterCurrent) {
+      return firstEmptyCellInWord(
+        nextWordWithEmptiesAfterCurrent
+      ) as CellCoordinates;
+    }
+
+    changeDirection();
+    return firstEmptyAcrossCell();
+    // // nextWordBeforeCurrent
+    // // const currentWordIndex = downWords.indexOf(focusedWord);
+
+    // // const nextWordWithEmptiesBeforeCurrent = downWords.find((word, idx) => {
+    // //   const hasEmpties = word.cells.some((cell) => {
+    // //     const [rIdx, cIdx] = cell;
+    // //     return userSolution[rIdx][cIdx] === "";
+    // //   });
+    // //   if (idx < currentWordIndex && hasEmpties) return word;
+    // // });
+
+    // // if (nextWordWithEmptiesBeforeCurrent) {
+    // //   return firstEmptyCellInWord(
+    // //     nextWordWithEmptiesBeforeCurrent
+    // //   ) as CellCoordinates;
+    // // }
+
+    // // debugger;
+
+    // return focusedCell;
+  };
+
+  // only works for across
+  // todo: always go back to beginning of current word first
+  const nextEmptyCellAcross = (): CellCoordinates => {
+    const [rIdx, cIdx] = focusedCell;
+    if (userSolution[rIdx][cIdx] === "") {
+      return focusedCell;
+    }
+
+    const [currentRow, currentColumn] = focusedCell;
+
+    const nextEmptyInRow = userSolution[currentRow].indexOf("", currentColumn);
+
+    if (nextEmptyInRow > -1) return [currentRow, nextEmptyInRow];
+
+    const firstEmptyIndexByRow = userSolution.map((row) =>
+      row.findIndex((cell) => cell === "")
+    );
+
+    const laterRowWithEmpty = firstEmptyIndexByRow.findIndex(
+      (emptyIndex, idx) => idx > currentRow && emptyIndex > -1
+    );
+
+    if (laterRowWithEmpty > -1) {
+      return [laterRowWithEmpty, firstEmptyIndexByRow[laterRowWithEmpty]];
+    }
+
+    changeDirection();
+    return firstEmptyDownCell();
+
+    // const earlierRowWithEmpty = firstEmptyIndexByRow.findIndex(
+    //   (emptyIndex, idx) => idx < currentRow && emptyIndex > -1
+    // );
+
+    // if (earlierRowWithEmpty > -1) {
+    //   return [earlierRowWithEmpty, firstEmptyIndexByRow[earlierRowWithEmpty]];
+    // }
+
+    // if (firstEmptyIndexByRow[currentRow] > -1) {
+    //   return [currentRow, firstEmptyIndexByRow[currentRow]];
+    // }
+
+    return focusedCell;
+  };
 
   // const isWordFull = (word: Word): boolean => {};
 
@@ -366,6 +435,8 @@ if single character in last empty space, change direction and go to first empty 
 
       switch (code) {
         case "Space":
+          event.preventDefault();
+
           changeDirection();
           break;
         case code.match(/^Arrow/)?.input:
@@ -373,24 +444,48 @@ if single character in last empty space, change direction and go to first empty 
           moveCursor(direction, [row, column]);
           break;
         case "Tab":
+          event.preventDefault();
+
           if (!event.shiftKey) {
-            // handleNextWord
-            // const word = allWords.indexOf(focusedWord);
-            // const nextEmptyWord = allWords.find((word) => word.)
+            const nextEmptyWordIdx = allWords.findIndex((word, wIndex) => {
+              const cells = word.cells;
+              if (wIndex <= allWords.indexOf(focusedWord)) return false;
+              const emptyCells = cells.some((cell) => {
+                const [rIdx, cIdx] = cell;
+                return userSolution[rIdx][cIdx] === "";
+              });
+              return emptyCells;
+            });
+
+            const nextEmptyWord = allWords[nextEmptyWordIdx];
+
+            const focusedCell =
+              nextEmptyWord.cells.find((cell) => {
+                const [rIdx, cIdx] = cell;
+                return userSolution[rIdx][cIdx] === "";
+              }) || nextEmptyWord.cells[0];
+
+            // debugger;
             // console.log(word);
-            // setFocusedWord()
+            setFocusedWord(nextEmptyWord);
+            setFocusedCell(focusedCell);
           } else {
             // handlePreviousWord (or maybe handleNextWord(-1) or something)
           }
           break;
         case "Backspace":
+          event.preventDefault();
+
           const backspaceCopy: Matrix15x15<CellContents> = JSON.parse(
             JSON.stringify(userSolution)
           );
           backspaceCopy[row][column] = "";
           setUserSolution(backspaceCopy);
+          // todo: also go back a space
           break;
         case `Key${key.toUpperCase()}`:
+          event.preventDefault();
+
           if (event.altKey || event.metaKey) return;
           const letterCopy: Matrix15x15<CellContents> = JSON.parse(
             JSON.stringify(userSolution)
@@ -413,6 +508,25 @@ if single character in last empty space, change direction and go to first empty 
     };
   }, [handleOnKeyDown]);
 
+  const cellNumber = (cell: CellCoordinates) => {
+    const [rIdx, cIdx] = cell;
+    // const inThere = sortedUniqueStartingCoordinates.find(nCell => {
+    //   const [nRIdx, nCIdx] = cell;
+    //   return rIdx === nRIdx && cIdx === nCIdx;
+    // });
+
+    // if (inThere) {
+    const index = sortedUniqueStartingCoordinates.findIndex((nCell) => {
+      const [nRIdx, nCIdx] = nCell;
+      return rIdx === nRIdx && cIdx === nCIdx;
+    });
+
+    if (index > -1) {
+      return index + 1;
+    }
+    // }
+  };
+
   return (
     <>
       <Grid>
@@ -429,6 +543,7 @@ if single character in last empty space, change direction and go to first empty 
                 changeDirection={changeDirection}
                 isFocused={cellIsFocused([rIdx, cIdx])}
                 isInFocusedWord={isInFocusedWord([rIdx, cIdx])}
+                number={cellNumber([rIdx, cIdx])}
               />
             ))}
           </Row>

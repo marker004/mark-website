@@ -11,6 +11,7 @@ type CellProps = {
   changeDirection: () => void;
   isFocused: boolean;
   isInFocusedWord: boolean;
+  number?: number;
 };
 
 const BlackCell = () => <span className={`${styles.cell} bg-black`} />;
@@ -24,6 +25,7 @@ export const Cell = ({
   isInFocusedWord,
   setFocusedCell,
   changeDirection,
+  number,
 }: CellProps) => {
   let cssClassName = `${styles.cell} ${styles.inputCell}`;
 
@@ -45,9 +47,12 @@ export const Cell = ({
 
   if (typeof contents === "string") {
     return (
-      <span className={cssClassName} onClick={handleSetFocusedCell}>
-        {userSolution[row][column]}
-      </span>
+      <>
+        <span className={cssClassName} onClick={handleSetFocusedCell}>
+          <span className={styles.number}>{number}</span>
+          {userSolution[row][column]}
+        </span>
+      </>
     );
   } else {
     return <BlackCell />;
