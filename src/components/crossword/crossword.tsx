@@ -411,7 +411,7 @@ export const Crossword = () => {
   /*
 onKeyUp,
 -- if backspace, clear cell contents
-if tab, go to first empty cell of next clue
+-- if tab, go to first empty cell of next clue
 if shift-tab, go to the first of empty cell of previous clue
 if single character (letters),
   input letter to cell
@@ -484,9 +484,8 @@ if single character in last empty space, change direction and go to first empty 
           // todo: also go back a space
           break;
         case `Key${key.toUpperCase()}`:
-          event.preventDefault();
-
           if (event.altKey || event.metaKey) return;
+          event.preventDefault();
           const letterCopy: Matrix15x15<CellContents> = JSON.parse(
             JSON.stringify(userSolution)
           );
@@ -510,12 +509,6 @@ if single character in last empty space, change direction and go to first empty 
 
   const cellNumber = (cell: CellCoordinates) => {
     const [rIdx, cIdx] = cell;
-    // const inThere = sortedUniqueStartingCoordinates.find(nCell => {
-    //   const [nRIdx, nCIdx] = cell;
-    //   return rIdx === nRIdx && cIdx === nCIdx;
-    // });
-
-    // if (inThere) {
     const index = sortedUniqueStartingCoordinates.findIndex((nCell) => {
       const [nRIdx, nCIdx] = nCell;
       return rIdx === nRIdx && cIdx === nCIdx;
@@ -524,7 +517,6 @@ if single character in last empty space, change direction and go to first empty 
     if (index > -1) {
       return index + 1;
     }
-    // }
   };
 
   return (

@@ -1,5 +1,5 @@
-import { CellContents, CellCoordinates, Matrix15x15 } from "./types";
-import styles from "./styles.cell.module.scss";
+import { CellContents, CellCoordinates, Matrix15x15 } from "../types";
+import styles from "./styles.module.scss";
 import { Dispatch, SetStateAction } from "react";
 
 type CellProps = {
@@ -27,7 +27,7 @@ export const Cell = ({
   changeDirection,
   number,
 }: CellProps) => {
-  let cssClassName = `${styles.cell} ${styles.inputCell}`;
+  let cssClassName = styles.cell;
 
   if (isInFocusedWord) {
     cssClassName += ` ${styles.isFocusedWord}`;
