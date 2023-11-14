@@ -12,7 +12,7 @@ export default function crosswords() {
       `Then during the pandemic, a friend told me he thought I'd be good at crosswords and asked me to do one with him. Since that day in August 2020,
       I have done at least one crossword puzzle per day, sometimes up to 5 (which, as it turns out, is too many crosswords per day). Something about it finally clicked, and now I absolutely love it.
       I love the wordplay in the clues and the genius of a tricky theme. I particularly enjoy Thursdays :)`,
-      `During the paternity leave after my daughter was born, early in 2022, I constructed my first crossword, which follows the basic technical specs of a New York Times crossword.`,
+      `During the paternity leave after my daughter was born, early in 2022, I constructed my first crossword, which adheres to the basic technical specs of a New York Times crossword.`,
     ],
   };
 
