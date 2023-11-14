@@ -1,0 +1,7 @@
+.row {
+  border-top: 1px solid black;
+  display: block;
+  &:last-child {
+    border-bottom: 1px solid black;
+  }
+}
