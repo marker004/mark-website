@@ -8,7 +8,7 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : _TupleOf<T, N, [T, ...R]>;
 
-export type Tuple15<T> = Tuple<T, 15>;
+type Tuple15<T> = Tuple<T, 15>;
 export type Matrix15x15<P> = Tuple15<Tuple15<P>>;
 
 export type CellContents = string | null;
