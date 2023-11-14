@@ -3,7 +3,7 @@
   height: 30px;
   display: inline-block;
   margin: 0;
-  border: 1px solid black;
+  border-left: 1px solid black;
   vertical-align: top;
   position: relative;
   color: black;
@@ -12,6 +12,9 @@
   font-size: 16px;
   padding-top: 4px;
   user-select: none;
+  &:last-child {
+    border-right: 1px solid black;
+  }
   &.isFocusedWord {
     background-color: lightblue;
   }
