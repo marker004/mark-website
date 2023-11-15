@@ -13,7 +13,12 @@ export type Matrix15x15<P> = Tuple15<Tuple15<P>>;
 
 export type CellContents = string | null;
 
-export type PuzzleDirection = "across" | "down";
+export enum Direction {
+  Across = "across",
+  Down = "down",
+}
+
+export type PuzzleDirection = Direction;
 
 export type HorizontalDirection = "Right" | "Left";
 export type VerticalDirection = "Down" | "Up";

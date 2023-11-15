@@ -2,6 +2,7 @@ import {
   CellCoordinates,
   Matrix15x15,
   PuzzleDirection,
+  Direction,
 } from "@/components/crossword";
 import { useCallback, useMemo } from "react";
 
@@ -82,7 +83,7 @@ export const useWord = (
           const acrossLength = calculateWordLength(row, cIdx);
           acrossWords.push({
             startingCoordinates: [rIdx, cIdx],
-            direction: "across",
+            direction: Direction.Across,
             length: acrossLength,
           });
         }
@@ -92,7 +93,7 @@ export const useWord = (
           const downLength = calculateWordLength(column, rIdx);
           downWords.push({
             startingCoordinates: [rIdx, cIdx],
-            direction: "down",
+            direction: Direction.Down,
             length: downLength,
           });
         }

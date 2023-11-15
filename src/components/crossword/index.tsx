@@ -10,3 +10,5 @@ export type {
   CellCoordinates,
   Clues,
 } from "./types";
+
+export { Direction } from "./types";
