@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Cell } from "./cell";
-import { Grid } from "./grid";
+import { Grid } from "./grid/grid";
 import { Row } from "./row";
 import {
   CursorDirection,
@@ -12,135 +12,15 @@ import {
   CellContents,
   CellCoordinates,
   PuzzleDirection,
+  Direction,
   // Clues
 } from "./types";
 // import { clues } from "./constants";
 import { solution } from "./constants";
-
-const shape = solution.map((row) =>
-  row.map((cell) => !!cell)
-) as Matrix15x15<boolean>;
-
-const emptySolution = solution.map((row) =>
-  row.map((cell) => (!!cell ? ("" as string) : null))
-) as Matrix15x15<string | null>;
-
-class Word {
-  startingCoordinate: CellCoordinates;
-  direction: PuzzleDirection;
-  length: number;
-
-  constructor(
-    startingCoordinate: CellCoordinates,
-    direction: PuzzleDirection,
-    length: number
-  ) {
-    this.startingCoordinate = startingCoordinate;
-    this.direction = direction;
-    this.length = length;
-  }
-
-  get cells() {
-    const [rowIdx, columnIdx] = this.startingCoordinate;
-    if (this.direction === "across") {
-      const columnIdxs = [...Array(this.length).keys()].map(
-        (i) => i + columnIdx
-      );
-
-      return columnIdxs.map((idx) => [rowIdx, idx] as CellCoordinates);
-    } else {
-      const rowIdxs = [...Array(this.length).keys()].map((i) => i + rowIdx);
-      return rowIdxs.map((idx) => [idx, columnIdx] as CellCoordinates);
-    }
-  }
-
-  equals = (word: Word) => {
-    const [thisRow, thisColumn] = this.startingCoordinate;
-    const [wordRow, wordColumn] = word.startingCoordinate;
-    return (
-      thisRow === wordRow &&
-      thisColumn === wordColumn &&
-      this.direction == word.direction &&
-      this.length == word.length
-    );
-  };
-}
-
-const acrossWords: Word[] = [];
-const downWords: Word[] = [];
-
-// note: this type can't handle danglers (super rare edge case)
-type CellWords = {
-  across: Word;
-  down: Word;
-};
-
-type AllCells = {
-  [k: string]: CellWords;
-};
-
-const isInWord = (coordinates: CellCoordinates, word: Word) => {
-  const coordinatesStringified = JSON.stringify(coordinates);
-  const cellsInWordStringified = JSON.stringify(word.cells);
-  const inArray = cellsInWordStringified.indexOf(coordinatesStringified);
-  return inArray != -1;
-};
-
-const allCells: AllCells = {};
-
-const calculateLength = (array: boolean[], cellIdx: number): number => {
-  const nextBlack = array.indexOf(false, cellIdx);
-  const wordEnd = nextBlack != -1 ? nextBlack : shape.length;
-  return wordEnd - cellIdx;
-};
-
-shape.forEach((row, rIdx) => {
-  row.forEach((cell, cIdx) => {
-    if (!cell) return;
-    if (cIdx === 0 || !row[cIdx - 1]) {
-      const acrossLength = calculateLength(row, cIdx);
-      acrossWords.push(new Word([rIdx, cIdx], "across", acrossLength));
-    }
-
-    const column = shape.map((row) => row[cIdx]);
-    if (rIdx === 0 || !column[rIdx - 1]) {
-      const downLength = calculateLength(column, rIdx);
-      downWords.push(new Word([rIdx, cIdx], "down", downLength));
-    }
-    allCells[`${rIdx},${cIdx}`] = {
-      across: acrossWords[acrossWords.length - 1],
-      down: downWords.find((word) => isInWord([rIdx, cIdx], word)) as Word,
-    };
-  });
-});
-
-const allWords = [...acrossWords, ...downWords];
-
-const allStartingCoordinates = allWords.map((word) => word.startingCoordinate);
-
-let uniqueStartingCoordinates: CellCoordinates[] = [];
-
-allStartingCoordinates.forEach((cell) => {
-  const [rIdx, cIdx] = cell;
-
-  const alreadyInThere = uniqueStartingCoordinates.some((existingCell) => {
-    const [eRIdx, eCIdx] = existingCell;
-    return rIdx === eRIdx && cIdx === eCIdx;
-  });
-
-  if (!alreadyInThere) {
-    uniqueStartingCoordinates.push(cell);
-  }
-});
-
-const sortedUniqueStartingCoordinates = uniqueStartingCoordinates.toSorted(
-  (a, b) => {
-    const [aRIdx, aCIdx] = a;
-    const [bRIdx, bCIdx] = b;
-
-    return aRIdx - bRIdx || aCIdx - bCIdx;
-  }
-);
+// import { Word } from "./utils";
+import { useWord, Word } from "@/hooks/useWord";
+import { useNumbering } from "@/hooks/useNumbering";
+import { usePuzzle } from "@/hooks/usePuzzle";
 
 /*
 square is numbered if it is:
@@ -156,29 +36,49 @@ below (same index as) a null (black)
 // ) => {
 export const Crossword = () => {
   const [focusedCell, setFocusedCell] = useState<CellCoordinates>([0, 0]);
-  const [focusedWord, setFocusedWord] = useState<Word>(acrossWords[0]);
-  const [clueDirection, setClueDirection] = useState<PuzzleDirection>("across");
+  const [clueDirection, setClueDirection] = useState<PuzzleDirection>(
+    Direction.Across
+  );
+
+  const { shape, emptySolution } = usePuzzle(solution);
+
   const [userSolution, setUserSolution] =
     useState<Matrix15x15<CellContents>>(emptySolution);
 
+  const {
+    allCells,
+    wordsAreEqual,
+    cellIsInWord,
+    wordCells,
+    acrossWords,
+    downWords,
+    allWords,
+  } = useWord(shape);
+
+  const { cellNumber } = useNumbering(allWords);
+
+  const [focusedWord, setFocusedWord] = useState<Word>(acrossWords[0]);
+
   useEffect(() => {
-    // console.log(focusedCell);
     const word = allCells[`${focusedCell}`][clueDirection];
-    if (!word.equals(focusedWord)) {
+    if (!wordsAreEqual(word, focusedWord)) {
       setFocusedWord(word);
     }
   }, [clueDirection, focusedCell]);
 
   useEffect(() => {
     // todo: make this handle backspace
+    const x = () => () => {};
     setFocusedCell(
-      clueDirection === "across" ? nextEmptyCellAcross() : nextEmptyCellDown()
+      clueDirection === Direction.Across
+        ? nextEmptyCell(Direction.Down)
+        : nextEmptyCell(Direction.Across)
     );
   }, [userSolution]);
 
-  const flipDirection = (direction: PuzzleDirection) => {
-    if (clueDirection === "down") return "across";
-    else return "down";
+  const flipDirection = () => {
+    if (clueDirection === Direction.Across) return Direction.Down;
+    else return Direction.Across;
   };
 
   const changeDirection = () => {
@@ -222,6 +122,8 @@ export const Crossword = () => {
     }
   };
 
+  // todo: maybe have interactive updating array of all available words left to fill and navigating is as easy as moving/removing words
+
   const cellIsFocused = (coordinates: CellCoordinates): boolean => {
     const [row, column] = coordinates;
     const [focusedRow, focusedColumn] = focusedCell;
@@ -229,64 +131,28 @@ export const Crossword = () => {
   };
 
   const isInFocusedWord = (coordinates: CellCoordinates): boolean => {
-    return isInWord(coordinates, focusedWord);
+    return cellIsInWord(coordinates, focusedWord);
   };
 
-  // may be reusable for across if given a direction param
-  const findInDownWord = (word: Word): CellCoordinates | undefined => {
-    const cells = word.cells;
-    const [focusedRIdx, focusedCIdx] = focusedCell;
+  const findEmptyCellInWord = (word: Word): CellCoordinates | undefined => {
+    const nextEmptyCellStartingFromFocusedCell = nextEmptyCellInWord(word);
 
-    // const focusedCellIndexInWord = cells.findIndex((cell, idx) => {
-    //   const [rIdx, cIdx] = cell;
-    //   return rIdx === focusedRIdx && cIdx === focusedCIdx;
-    // });
-
-    const rowLetters = cells.reduce<Record<string, string>>((acc, cell) => {
-      const [rIdx, cIdx] = cell;
-      acc[rIdx] = userSolution[rIdx][cIdx] as string;
-      return acc;
-    }, {});
-
-    const emptyCellAfterFocusedCell = Object.entries(rowLetters).find(
-      ([rIdx, userValue]) => {
-        return userValue === "" && parseInt(rIdx) > focusedRIdx;
-      }
-    );
-
-    const firstEmptyCellBeforeFocusedCell = Object.entries(rowLetters).find(
-      ([rIdx, userValue]) => {
-        return userValue === "" && parseInt(rIdx) < focusedRIdx;
-      }
-    );
-
-    if (emptyCellAfterFocusedCell) {
-      return [parseInt(emptyCellAfterFocusedCell[0]), focusedCIdx];
+    if (nextEmptyCellStartingFromFocusedCell) {
+      return nextEmptyCellStartingFromFocusedCell;
     }
+
+    const firstEmptyCellBeforeFocusedCell = firstEmptyCellInWord(word);
 
     if (firstEmptyCellBeforeFocusedCell) {
-      return [parseInt(firstEmptyCellBeforeFocusedCell[0]), focusedCIdx];
+      return firstEmptyCellBeforeFocusedCell;
     }
   };
 
-  const firstEmptyAcrossCell = (): CellCoordinates => {
-    const firstEmptyIndexByRow = userSolution.map((row) =>
-      row.findIndex((cell) => cell === "")
-    );
+  const firstEmptyCellInGrid = (direction: Direction): CellCoordinates => {
+    const wordList = direction === Direction.Across ? acrossWords : downWords;
 
-    const row = firstEmptyIndexByRow.findIndex((row) => row > -1);
-    const column = firstEmptyIndexByRow.find((row) => row > -1);
-
-    if (row > -1 && typeof column === "number" && column > -1) {
-      return [row, column];
-    }
-
-    return focusedCell;
-  };
-
-  const firstEmptyDownCell = (): CellCoordinates => {
-    const firstWord = downWords.find((word) => {
-      const hasEmpties = word.cells.some((cell) => {
+    const firstWord = wordList.find((word) => {
+      const hasEmpties = wordCells(word).some((cell) => {
         const [rIdx, cIdx] = cell;
         return userSolution[rIdx][cIdx] === "";
       });
@@ -299,12 +165,18 @@ export const Crossword = () => {
     return firstEmptyCellInWord(firstWord) as CellCoordinates;
   };
 
-  // maybe reusable with "before/after" param
   const nextWordWithEmpties = (): Word | undefined => {
-    const currentWordIndex = downWords.indexOf(focusedWord);
+    const wordList =
+      clueDirection === Direction.Across ? acrossWords : downWords;
 
-    return downWords.find((word, idx) => {
-      const hasEmpties = word.cells.some((cell) => {
+    const stringifiedAcrossWords = wordList.map((word) => JSON.stringify(word));
+    const stringifiedFocusedWord = JSON.stringify(focusedWord);
+    const currentWordIndex = stringifiedAcrossWords.indexOf(
+      stringifiedFocusedWord
+    );
+
+    return wordList.find((word, idx) => {
+      const hasEmpties = wordCells(word).some((cell) => {
         const [rIdx, cIdx] = cell;
         return userSolution[rIdx][cIdx] === "";
       });
@@ -312,21 +184,48 @@ export const Crossword = () => {
     });
   };
 
+  // const previousWordWithEmpties = (): Word | undefined => {};
+
   const firstEmptyCellInWord = (word: Word): CellCoordinates | undefined => {
-    return word.cells.find((cell) => {
+    return wordCells(word).find((cell) => {
       const [rIdx, cIdx] = cell;
 
       return userSolution[rIdx][cIdx] === "";
     });
   };
 
-  const nextEmptyCellDown = (): CellCoordinates => {
+  const nextEmptyCellInWord = (word: Word): CellCoordinates | undefined => {
+    const cells = wordCells(word);
+
+    const wordStartIndex =
+      clueDirection === Direction.Across ? cells[0][1] : cells[0][0];
+
+    const userCells = cells.map((cell) => userSolution[cell[0]][cell[1]]);
+
+    const startingPoint =
+      clueDirection === Direction.Across ? focusedCell[1] : focusedCell[0];
+
+    const nextEmptyCoordinate = userCells.indexOf(
+      "",
+      startingPoint - wordStartIndex
+    );
+
+    if (nextEmptyCoordinate > -1) {
+      const finalCoordinate = nextEmptyCoordinate + wordStartIndex;
+
+      return clueDirection === Direction.Across
+        ? [focusedCell[0], finalCoordinate]
+        : [finalCoordinate, focusedCell[1]];
+    }
+  };
+
+  const nextEmptyCell = (nextDirection: Direction): CellCoordinates => {
     const [rIdx, cIdx] = focusedCell;
     if (userSolution[rIdx][cIdx] === "") {
       return focusedCell;
     }
 
-    const cellInWord = findInDownWord(focusedWord);
+    const cellInWord = findEmptyCellInWord(focusedWord);
 
     if (cellInWord) return cellInWord;
 
@@ -339,74 +238,10 @@ export const Crossword = () => {
     }
 
     changeDirection();
-    return firstEmptyAcrossCell();
-    // // nextWordBeforeCurrent
-    // // const currentWordIndex = downWords.indexOf(focusedWord);
-
-    // // const nextWordWithEmptiesBeforeCurrent = downWords.find((word, idx) => {
-    // //   const hasEmpties = word.cells.some((cell) => {
-    // //     const [rIdx, cIdx] = cell;
-    // //     return userSolution[rIdx][cIdx] === "";
-    // //   });
-    // //   if (idx < currentWordIndex && hasEmpties) return word;
-    // // });
-
-    // // if (nextWordWithEmptiesBeforeCurrent) {
-    // //   return firstEmptyCellInWord(
-    // //     nextWordWithEmptiesBeforeCurrent
-    // //   ) as CellCoordinates;
-    // // }
-
-    // // debugger;
-
-    // return focusedCell;
+    return firstEmptyCellInGrid(nextDirection);
   };
 
-  // only works for across
-  // todo: always go back to beginning of current word first
-  const nextEmptyCellAcross = (): CellCoordinates => {
-    const [rIdx, cIdx] = focusedCell;
-    if (userSolution[rIdx][cIdx] === "") {
-      return focusedCell;
-    }
-
-    const [currentRow, currentColumn] = focusedCell;
-
-    const nextEmptyInRow = userSolution[currentRow].indexOf("", currentColumn);
-
-    if (nextEmptyInRow > -1) return [currentRow, nextEmptyInRow];
-
-    const firstEmptyIndexByRow = userSolution.map((row) =>
-      row.findIndex((cell) => cell === "")
-    );
-
-    const laterRowWithEmpty = firstEmptyIndexByRow.findIndex(
-      (emptyIndex, idx) => idx > currentRow && emptyIndex > -1
-    );
-
-    if (laterRowWithEmpty > -1) {
-      return [laterRowWithEmpty, firstEmptyIndexByRow[laterRowWithEmpty]];
-    }
-
-    changeDirection();
-    return firstEmptyDownCell();
-
-    // const earlierRowWithEmpty = firstEmptyIndexByRow.findIndex(
-    //   (emptyIndex, idx) => idx < currentRow && emptyIndex > -1
-    // );
-
-    // if (earlierRowWithEmpty > -1) {
-    //   return [earlierRowWithEmpty, firstEmptyIndexByRow[earlierRowWithEmpty]];
-    // }
-
-    // if (firstEmptyIndexByRow[currentRow] > -1) {
-    //   return [currentRow, firstEmptyIndexByRow[currentRow]];
-    // }
-
-    return focusedCell;
-  };
-
-  // const isWordFull = (word: Word): boolean => {};
+  // todo: define a nextEmptyCell function that just finds the next empty cell in the puzzle
 
   /*
 onKeyUp,
@@ -414,8 +249,8 @@ onKeyUp,
 -- if tab, go to first empty cell of next clue
 if shift-tab, go to the first of empty cell of previous clue
 if single character (letters),
-  input letter to cell
-  if current word not finished, goto next empty cell in current direction
+  -- input letter to cell
+  -- if current word not finished, goto next empty cell in current direction
   else
     if not last cell of word go to next cell of word
     else goto next empty cell in current direction
@@ -440,6 +275,8 @@ if single character in last empty space, change direction and go to first empty 
           changeDirection();
           break;
         case code.match(/^Arrow/)?.input:
+          event.preventDefault();
+
           const direction = code.replace("Arrow", "") as CursorDirection;
           moveCursor(direction, [row, column]);
           break;
@@ -447,28 +284,14 @@ if single character in last empty space, change direction and go to first empty 
           event.preventDefault();
 
           if (!event.shiftKey) {
-            const nextEmptyWordIdx = allWords.findIndex((word, wIndex) => {
-              const cells = word.cells;
-              if (wIndex <= allWords.indexOf(focusedWord)) return false;
-              const emptyCells = cells.some((cell) => {
-                const [rIdx, cIdx] = cell;
-                return userSolution[rIdx][cIdx] === "";
-              });
-              return emptyCells;
-            });
+            const nextEmptyWord = nextWordWithEmpties() as Word;
 
-            const nextEmptyWord = allWords[nextEmptyWordIdx];
+            const nextFocusedCell = firstEmptyCellInWord(
+              nextEmptyWord
+            ) as CellCoordinates;
 
-            const focusedCell =
-              nextEmptyWord.cells.find((cell) => {
-                const [rIdx, cIdx] = cell;
-                return userSolution[rIdx][cIdx] === "";
-              }) || nextEmptyWord.cells[0];
-
-            // debugger;
-            // console.log(word);
             setFocusedWord(nextEmptyWord);
-            setFocusedCell(focusedCell);
+            setFocusedCell(nextFocusedCell);
           } else {
             // handlePreviousWord (or maybe handleNextWord(-1) or something)
           }
@@ -489,6 +312,7 @@ if single character in last empty space, change direction and go to first empty 
           const letterCopy: Matrix15x15<CellContents> = JSON.parse(
             JSON.stringify(userSolution)
           );
+          // note: this breaks when typing real fast, implement a debounce
           letterCopy[row][column] = key.toUpperCase();
           setUserSolution(letterCopy);
           break;
@@ -506,18 +330,6 @@ if single character in last empty space, change direction and go to first empty 
       window.removeEventListener("keydown", handleOnKeyDown);
     };
   }, [handleOnKeyDown]);
-
-  const cellNumber = (cell: CellCoordinates) => {
-    const [rIdx, cIdx] = cell;
-    const index = sortedUniqueStartingCoordinates.findIndex((nCell) => {
-      const [nRIdx, nCIdx] = nCell;
-      return rIdx === nRIdx && cIdx === nCIdx;
-    });
-
-    if (index > -1) {
-      return index + 1;
-    }
-  };
 
   return (
     <>
